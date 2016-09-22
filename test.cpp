@@ -21,11 +21,11 @@ template<typename T1, typename T2>
 void test_convert(const bytes& b1, const bytes& b2) {
   bytes b3, b4;
   int r1 = minicode::convert<T1, T2>(b1, b3);
-  if (r1 > 0) {
+  if (r1 != 0) {
     cerr<<"convert failed!"<<endl;
   }
   int r2 = minicode::convert<T2, T1>(b2, b4);
-  if (r2 > 0) {
+  if (r2 != 0) {
     cerr<<"convert failed!"<<endl;
   }
   if (r1 == 0 && r2 == 0) {
@@ -33,7 +33,6 @@ void test_convert(const bytes& b1, const bytes& b2) {
     bool equal2 = (b1 == b4);
     cout<<boolalpha<<"compare "<<equal1<<" "<<equal2<<endl;
   }
-
 }
 
 
