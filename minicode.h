@@ -6,6 +6,27 @@
 
 namespace minicode {
 
+inline bool is_surrogate_high(std::uint32_t u) {
+  return 0xd800 <= u && u <= 0xdbff;
+}
+
+inline bool is_surrogate_low(std::uint32_t u) {
+  return 0xdc00 <= u && u <= 0xdfff;
+}
+
+inline bool is_surrogate(std::uint32_t u) {
+  return 0xd800 <= u && u <= 0xdfff;
+}
+
+inline bool is_valid_unicode(std::uint32_t u) {
+  return u <= 0x10ffff && !is_surrogate(u);
+}
+
+// utf-8 continunation
+inline bool is_utf8_cont(std::uint8_t b) {
+  return (b & 0xc0) == 0x80;
+}
+
 struct uchar {
   uchar() = default;
   uchar(const uchar) = default;
@@ -77,36 +98,30 @@ struct utf8 {
     if(bytes[0] < 0x80 && n >= 1) {
       u = bytes[0];
       return 1;
-    } else if (bytes[0] < 0xe0 && n >= 2) {
+    } else if (bytes[0] < 0xe0 &&
+               n >= 2 &&
+               is_utf8_cont(bytes[1])) {
       u = ((bytes[0] & 0x1f) << 6) |
           (bytes[1] & 0x3f);
       return 2;
-    } else if (bytes[0] < 0xf0 && n >= 3) {
+    } else if (bytes[0] < 0xf0 &&
+               n >= 3 &&
+               is_utf8_cont(bytes[1]) &&
+               is_utf8_cont(bytes[2])) {
       u = ((bytes[0] & 0x0f) << 12) |
           ((bytes[1] & 0x3f) << 6) |
           (bytes[2] & 0x3f);
       return 3;
-    } else if (bytes[0] < 0xf8 && n >= 4) {
+    } else if (bytes[0] < 0xf8 &&
+               n >= 4 &&
+               is_utf8_cont(bytes[1]) &&
+               is_utf8_cont(bytes[2]) &&
+               is_utf8_cont(bytes[3])) {
       u = ((bytes[0] & 0x07) << 18) |
           ((bytes[1] & 0x3f) << 12) |
           ((bytes[2] & 0x3f) << 6) |
           (bytes[3] & 0x3f);
       return 4;
-    } else if (bytes[0] < 0xfc && n >= 5) {
-      u = ((bytes[0] & 0x03) << 24) |
-          ((bytes[1] & 0x3f) << 18) |
-          ((bytes[2] & 0x3f) << 12) |
-          ((bytes[3] & 0x3f) << 6) |
-          (bytes[4] & 0x3f);
-      return 5;
-    } else if (bytes[0] < 0xfe && n >= 6) {
-      u = ((bytes[0] & 0x01) << 30) |
-          ((bytes[1] & 0x3f) << 24) |
-          ((bytes[2] & 0x3f) << 18) |
-          ((bytes[3] & 0x3f) << 12) |
-          ((bytes[4] & 0x3f) << 6) |
-          (bytes[5] & 0x3f);
-      return 6;
     } else {
       return -1;
     }
@@ -115,6 +130,9 @@ struct utf8 {
   int operator()(const uchar uc, char* bs, int n) {
     assert(n > 0);
     const std::uint32_t u = uc.value();
+    if (!is_valid_unicode(u)) {
+      return -1;
+    }
     std::uint8_t *bytes = reinterpret_cast<uint8_t *>(bs);
     if(u < 0x80 && n >= 1) {
       bytes[0] = u;
@@ -134,21 +152,6 @@ struct utf8 {
       bytes[2] = (u & 07700) >> 6 | 0200;
       bytes[3] = (u & 077) | 0200;
       return 4;
-    } else if (u < 0x4000000 && n >= 5) {
-      bytes[0] = (u & 07700000000) >> 24 | 0373;
-      bytes[1] = (u & 077000000) >> 18 | 0200;
-      bytes[2] = (u & 0770000) >> 12 | 0200;
-      bytes[3] = (u & 07700) >> 6 | 0200;
-      bytes[4] = (u & 077) | 0200;
-      return 5;
-    } else if (u < 0x80000000 && n >= 6) {
-      bytes[0] = (u & 017000000000) >> 30;
-      bytes[1] = (u & 07700000000) >> 24 | 0200;
-      bytes[2] = (u & 077000000) >> 18 | 0200;
-      bytes[3] = (u & 0770000) >> 12 | 0200;
-      bytes[4] = (u & 07700) >> 6 | 0200;
-      bytes[5] = (u & 077) | 0200;
-      return 6;
     } else {
       return -1;
     }
