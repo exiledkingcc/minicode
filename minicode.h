@@ -19,41 +19,28 @@ private:
   std::uint32_t _value;
 };
 
-struct bytes {
-  bytes() = default;
-  bytes(const bytes) = default;
-  bytes(bytes&&) = default;
-  bytes& operator=(const bytes&) = default;
-  bytes& operator=(bytes&&) = default;
+
+template<typename T>
+class sequence {
+  sequence() = default;
+  sequence(const sequence) = default;
+  sequence(sequence&&) = default;
+  sequence& operator=(const sequence&) = default;
+  sequence& operator=(sequence&&) = default;
 
   std::size_t size() const { return _data.size(); }
 
-  char* data() { return _data.data(); }
-  const char* data() const { return _data.data(); }
-  const char* limit() const { return _data.data() + _data.size(); }
+  T* data() { return _data.data(); }
+  const T* data() const { return _data.data(); }
+  const T* limit() const { return _data.data() + _data.size(); }
 
-  void assign(const char *b, const char *e) { _data.assign(b, e); }
+  void assign(const T *b, const T *e) { _data.assign(b, e); }
 private:
-  std::vector<char> _data;
+  std::vector<T> _data;
 };
 
-struct ustring {
-  ustring() = default;
-  ustring(const ustring&) = default;
-  ustring(ustring&&) = default;
-  ustring& operator=(const ustring&) = default;
-  ustring& operator=(ustring&&) = default;
-
-  std::size_t size() const { return _data.size(); }
-
-  uchar* data() { return _data.data(); }
-  const uchar* data() const { return _data.data(); }
-  const uchar* limit() const { return _data.data() + _data.size(); }
-
-  void assign(const uchar *b, const uchar *e) { _data.assign(b, e); }
-private:
-  std::vector<ustring> _data;
-};
+typedef sequence<char> bytes;
+typedef sequence<uchar> str;
 
 
 struct ascii {
@@ -174,9 +161,9 @@ struct utf32le {};
 struct utf32be {};
 
 template<typename T>
-int encode(const ustring& str, bytes& bs) {
-  const uchar *sb = str.data();
-  const uchar *se = str.limit();
+int encode(const str& ss, bytes& bs) {
+  const uchar *sb = ss.data();
+  const uchar *se = ss.limit();
   std::vector<char> b(n * 6); // enough buff
   char *bb = b.data();
   char *be = b.data() + b.size();
@@ -195,7 +182,7 @@ int encode(const ustring& str, bytes& bs) {
 }
 
 template<typename T>
-int decode(const bytes& bs, ustring& str) {
+int decode(const bytes& bs, str& ss) {
   const char *bb = bs.data();
   const char *be = bs.data() + bs.size();
   std::vector<uchar> s(n); // enough buff
@@ -210,7 +197,7 @@ int decode(const bytes& bs, ustring& str) {
       ++sb;
     }
   }
-  str.assign(s.data(), sb);
+  ss.assign(s.data(), sb);
   return be - bb;
 }
 
