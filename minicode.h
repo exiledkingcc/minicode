@@ -28,8 +28,10 @@ struct bytes {
 
   std::size_t size() const { return _data.size(); }
 
-  const char* data() const { return _data.data(); }
   char* data() { return _data.data(); }
+  const char* data() const { return _data.data(); }
+  const char* limit() const { return _data.data() + _data.size(); }
+
   void assign(const char *b, const char *e) { _data.assign(b, e); }
 private:
   std::vector<char> _data;
@@ -44,8 +46,10 @@ struct ustring {
 
   std::size_t size() const { return _data.size(); }
 
-  const uchar* data() const { return _data.data(); }
   uchar* data() { return _data.data(); }
+  const uchar* data() const { return _data.data(); }
+  const uchar* limit() const { return _data.data() + _data.size(); }
+
   void assign(const uchar *b, const uchar *e) { _data.assign(b, e); }
 private:
   std::vector<ustring> _data;
@@ -171,68 +175,67 @@ struct utf32be {};
 
 template<typename T>
 int encode(const ustring& str, bytes& bs) {
-  const uchar *ss = str.data();
-  int n = static_cast<int>(str.size());
-  std::vector<char> bb(n * 6); // enough buff;
-  char *buff = bb.data();
-  char *limit = buff + n * 6;
+  const uchar *sb = str.data();
+  const uchar *se = str.limit();
+  std::vector<char> b(n * 6); // enough buff
+  char *bb = b.data();
+  char *be = b.data() + b.size();
   T t;
-  while (ss != str.data() + n) {
-    int p = t1(*ss, buff, limit - buff);
+  while (sb < se) {
+    int p = t1(*sb, bb, be - bb);
     if (p < 0) {
       break;
     } else {
-      ++ss;
-      buff += p;
+      ++sb;
+      bb += p;
     }
   }
-  bs.assign(bb.data(), buff);
-  return ss - str.data();
+  bs.assign(b.data(), bb);
+  return sb - str.data();
 }
 
 template<typename T>
 int decode(const bytes& bs, ustring& str) {
-  const char *buff = bs.data();
-  const char *limit = buff + bs.size();
-  int n = static_cast<int>(bs.size());
-  std::vector<uchar> ss(n); // enough buff;
-  uchar *s = ss.data();
+  const char *bb = bs.data();
+  const char *be = bs.data() + bs.size();
+  std::vector<uchar> s(n); // enough buff
+  uchar *sb = s.data();
   T t;
-  while (buff < limit) {
-    int p = t(buff, limit - buff, *s);
+  while (bb < be) {
+    int p = t(bb, be - bb, *sb);
     if (p < 0) {
       break;
     } else {
-      buff += p;
-      ++s;
+      bb += p;
+      ++sb;
     }
   }
-  str.assign(ss.data(), s);
-  return limit - buff;
+  str.assign(s.data(), sb);
+  return be - bb;
 }
 
 template<typename T1, typename T2>
 int convert(const bytes& b1, bytes& b2) {
-  const char *bs = b1.data();
-  int n = static_cast<int>(b1.size());
-  std::vector<char> bb(n * 4); // enough buff
-  char* buff = bb.data();
-  const char* limit = buff + n * 4;
+  const char *b1b = b1.data();
+  const char *b1e = b1.limit();
+  std::vector<char> b(n * 4); // enough buff
+  char* bb = b.data();
+  const char* be = b.data() + b.size();
   T1 t1;
   T2 t2;
-  while (n > 0) {
+  while (b1b < b1e) {
     uchar u;
-    int p = t1(bs, n, u);
-    if (p < 0 || p > n) {
+    int p = t1(b1b, b1e - b1b, u);
+    if (p < 0) {
       break;
     } else {
-      n -= p;
-      int q = t2(u, buff, limit - buff);
-      buff += q;
+      b1b += p;
+      int q = t2(u, bb, be - bb);
+      bb += q;
     }
   }
-  b2.assign(bb.data(), buff);
-  return n;
+  b2.assign(b.data(), bb);
+  return b1e - b1b;
 }
 
 
