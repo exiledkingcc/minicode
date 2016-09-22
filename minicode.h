@@ -6,21 +6,6 @@
 
 namespace minicode {
 
-struct bytes {
-  bytes() = default;
-  bytes(const bytes) = default;
-  bytes(bytes&&) = default;
-  bytes& operator=(const bytes&) = default;
-  bytes& operator=(bytes&&) = default;
-
-  std::size_t size() const { return _data.size(); }
-
-  const char* data() const { return _data.data(); }
-  char* data() { return _data.data(); }
-private:
-  std::vector<char> _data;
-};
-
 struct uchar {
   uchar() = default;
   uchar(const uchar) = default;
@@ -33,6 +18,39 @@ struct uchar {
 private:
   std::uint32_t _value;
 };
+
+struct bytes {
+  bytes() = default;
+  bytes(const bytes) = default;
+  bytes(bytes&&) = default;
+  bytes& operator=(const bytes&) = default;
+  bytes& operator=(bytes&&) = default;
+
+  std::size_t size() const { return _data.size(); }
+
+  const char* data() const { return _data.data(); }
+  char* data() { return _data.data(); }
+  void assign(const char *b, const char *e) { _data.assign(b, e); }
+private:
+  std::vector<char> _data;
+};
+
+struct ustring {
+  ustring() = default;
+  ustring(const ustring&) = default;
+  ustring(ustring&&) = default;
+  ustring& operator=(const ustring&) = default;
+  ustring& operator=(ustring&&) = default;
+
+  std::size_t size() const { return _data.size(); }
+
+  const uchar* data() const { return _data.data(); }
+  uchar* data() { return _data.data(); }
+  void assign(const uchar *b, const uchar *e) { _data.assign(b, e); }
+private:
+  std::vector<ustring> _data;
+};
+
 
 struct ascii {
   int operator()(const char *bs, int n, uchar& uc) {
@@ -151,12 +169,47 @@ struct utf16be {};
 struct utf32le {};
 struct utf32be {};
 
+template<typename T>
+int encode(const ustring& str, bytes& bs) {
+  const uchar *ss = str.data();
+  int n = static_cast<int>(str.size());
+  std::vector<char> bb(n * 6); // enough buff;
+  char *buff = bb.data();
+  char *limit = buff + n * 6;
+  T t;
+  while (ss != str.data() + n) {
+    int p = t1(*ss, buff, limit - buff);
+    if (p < 0) {
+      break;
+    } else {
+      ++ss;
+      buff += p;
+    }
+  }
+  bs.assign(bb.data(), buff);
+  return ss - str.data();
+}
 
-struct ustring {
-private:
-  std::vector<uchar> _data;
-};
-
+template<typename T>
+int decode(const bytes& bs, ustring& str) {
+  const char *buff = bs.data();
+  const char *limit = buff + bs.size();
+  int n = static_cast<int>(bs.size());
+  std::vector<uchar> ss(n); // enough buff;
+  uchar *s = ss.data();
+  T t;
+  while (buff < limit) {
+    int p = t(buff, limit - buff, *s);
+    if (p < 0) {
+      break;
+    } else {
+      buff += p;
+      ++s;
+    }
+  }
+  str.assign(ss.data(), s);
+  return limit - buff;
+}
 
 template<typename T1, typename T2>
 int convert(const bytes& b1, bytes& b2) {
@@ -164,7 +217,7 @@ int convert(const bytes& b1, bytes& b2) {
   int n = static_cast<int>(b1.size());
   std::vector<char> bb(n * 4); // enough buff
   char* buff = bb.data();
-  char* limit = buff + n * 4;
+  const char* limit = buff + n * 4;
   T1 t1;
   T2 t2;
   while (n > 0) {
