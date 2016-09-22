@@ -1,6 +1,7 @@
 #ifndef _MINICODE_H_
 #define _MINICODE_H_ 1
 
+#include <cassert>
 #include <cstdint>
 #include <vector>
 
@@ -29,7 +30,7 @@ inline bool is_utf8_cont(std::uint8_t b) {
 
 struct uchar {
   uchar() = default;
-  uchar(const uchar) = default;
+  uchar(const uchar&) = default;
   uchar(uchar&&) = default;
   uchar& operator=(const uchar&) = default;
   uchar& operator=(uchar&&) = default;
@@ -43,11 +44,18 @@ private:
 
 template<typename T>
 class sequence {
+public:
   sequence() = default;
-  sequence(const sequence) = default;
+  sequence(const sequence&) = default;
   sequence(sequence&&) = default;
   sequence& operator=(const sequence&) = default;
   sequence& operator=(sequence&&) = default;
+
+  sequence(const T* beg, std::size_t n):_data(beg, beg + n){}
+  sequence(std::size_t n, const T val = T()):_data(n, val){}
+
+  bool operator==(const sequence& s) const { return _data == s._data; }
+  bool operator!=(const sequence& s) const { return _data != s._data; };
 
   std::size_t size() const { return _data.size(); }
 
@@ -55,7 +63,7 @@ class sequence {
   const T* data() const { return _data.data(); }
   const T* limit() const { return _data.data() + _data.size(); }
 
-  void assign(const T *b, const T *e) { _data.assign(b, e); }
+  void assign(const T* b, const T* e) { _data.assign(b, e); }
 private:
   std::vector<T> _data;
 };
@@ -167,12 +175,12 @@ template<typename T>
 int encode(const str& ss, bytes& bs) {
   const uchar *sb = ss.data();
   const uchar *se = ss.limit();
-  std::vector<char> b(n * 6); // enough buff
+  std::vector<char> b((se -sb) * 4); // enough buff
   char *bb = b.data();
   char *be = b.data() + b.size();
   T t;
   while (sb < se) {
-    int p = t1(*sb, bb, be - bb);
+    int p = t(*sb, bb, be - bb);
     if (p < 0) {
       break;
     } else {
@@ -181,14 +189,14 @@ int encode(const str& ss, bytes& bs) {
     }
   }
   bs.assign(b.data(), bb);
-  return sb - str.data();
+  return sb - ss.data();
 }
 
 template<typename T>
 int decode(const bytes& bs, str& ss) {
   const char *bb = bs.data();
   const char *be = bs.data() + bs.size();
-  std::vector<uchar> s(n); // enough buff
+  std::vector<uchar> s(bs.size()); // enough buff
   uchar *sb = s.data();
   T t;
   while (bb < be) {
@@ -208,7 +216,7 @@ template<typename T1, typename T2>
 int convert(const bytes& b1, bytes& b2) {
   const char *b1b = b1.data();
   const char *b1e = b1.limit();
-  std::vector<char> b(n * 4); // enough buff
+  std::vector<char> b((b1e - b1b) * 4); // enough buff
   char* bb = b.data();
   const char* be = b.data() + b.size();
   T1 t1;
