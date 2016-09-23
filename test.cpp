@@ -33,6 +33,7 @@ void test_convert(const bytes& b1, const bytes& b2) {
     bool equal2 = (b1 == b4);
     cout<<boolalpha<<"compare "<<equal1<<" "<<equal2<<endl;
   }
+  cout<<endl;
 }
 
 
@@ -60,6 +61,33 @@ int main() {
 
   cout<<"test <utf16be, utf16be> ..."<<endl;
   test_convert<minicode::utf16be, minicode::utf16be>(utf16be, utf16be);
+
+  cout<<"test <utf8, utf32le> ..."<<endl;
+  test_convert<minicode::utf8, minicode::utf32le>(utf8, utf32le);
+
+  cout<<"test <utf8, utf32be> ..."<<endl;
+  test_convert<minicode::utf8, minicode::utf32be>(utf8, utf32be);
+
+  cout<<"test <utf16le, utf32le> ..."<<endl;
+  test_convert<minicode::utf16le, minicode::utf32le>(utf16le, utf32le);
+
+  cout<<"test <utf16le, utf32be> ..."<<endl;
+  test_convert<minicode::utf16le, minicode::utf32be>(utf16le, utf32be);
+
+  cout<<"test <utf16be, utf32le> ..."<<endl;
+  test_convert<minicode::utf16be, minicode::utf32le>(utf16be, utf32le);
+
+  cout<<"test <utf16be, utf32be> ..."<<endl;
+  test_convert<minicode::utf16be, minicode::utf32be>(utf16be, utf32be);
+
+  cout<<"test <utf32le, utf32le> ..."<<endl;
+  test_convert<minicode::utf32le, minicode::utf32le>(utf32le, utf32le);
+
+  cout<<"test <utf32le, utf32be> ..."<<endl;
+  test_convert<minicode::utf32le, minicode::utf32be>(utf32le, utf32be);
+
+  cout<<"test <utf32be, utf32be> ..."<<endl;
+  test_convert<minicode::utf32be, minicode::utf32be>(utf32be, utf32be);
 
   return 0;
 }

@@ -282,8 +282,66 @@ struct utf16be {
   }
 };
 
-struct utf32le {};
-struct utf32be {};
+struct utf32le {
+  int operator()(const char *bs, int n, uchar& uc) {
+    assert(n >= 4);
+    std::uint32_t& u = uc.value();
+    const std::uint8_t *bss = reinterpret_cast<const uint8_t *>(bs);
+    std::uint32_t x = bss[0] | (bss[1] << 8) | (bss[2] << 16) | (bss[3] << 24);
+    if (is_valid_unicode(x)) {
+      u = x;
+      return 4;
+    } else {
+      return -1;
+    }
+  }
+
+  int operator()(const uchar uc, char* bs, int n) {
+    assert(n >= 4);
+    const std::uint32_t u = uc.value();
+    std::uint8_t *bss = reinterpret_cast<uint8_t *>(bs);
+    if (is_valid_unicode(u)) {
+      bss[0] = u & 0xff;
+      bss[1] = (u >> 8) & 0xff;
+      bss[2] = (u >> 16) & 0xff;
+      bss[3] = (u >>24) & 0xff;
+      return 4;
+    } else {
+      return -1;
+    }
+  }
+};
+
+struct utf32be {
+  int operator()(const char *bs, int n, uchar& uc) {
+    assert(n >= 4);
+    std::uint32_t& u = uc.value();
+    const std::uint8_t *bss = reinterpret_cast<const uint8_t *>(bs);
+    std::uint32_t x = bss[3] | (bss[2] << 8) | (bss[1] << 16) | (bss[0] << 24);
+    if (is_valid_unicode(x)) {
+      u = x;
+      return 4;
+    } else {
+      return -1;
+    }
+  }
+
+  int operator()(const uchar uc, char* bs, int n) {
+    assert(n >= 4);
+    const std::uint32_t u = uc.value();
+    std::uint8_t *bss = reinterpret_cast<uint8_t *>(bs);
+    if (is_valid_unicode(u)) {
+      bss[3] = u & 0xff;
+      bss[2] = (u >> 8) & 0xff;
+      bss[1] = (u >> 16) & 0xff;
+      bss[0] = (u >>24) & 0xff;
+      return 4;
+    } else {
+      return -1;
+    }
+  }
+};
+
 
 template<typename T>
 int encode(const str& ss, bytes& bs) {
