@@ -8,6 +8,10 @@
 
 namespace minicode {
 
+///////////////////////////////////////////////////////////////////////////////
+// useful unicode facilities
+///////////////////////////////////////////////////////////////////////////////
+
 inline bool is_surrogate_high(std::uint32_t u) {
   return 0xd800 <= u && u <= 0xdbff;
 }
@@ -40,6 +44,10 @@ inline bool is_utf8_cont(std::uint8_t b) {
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
+// exceptions, NOT supported now
+///////////////////////////////////////////////////////////////////////////////
+
 class encode_error: public std::logic_error {
 public:
   encode_error(const char* s):std::logic_error(s){}
@@ -52,6 +60,10 @@ public:
   decode_error(const std::string& s):std::logic_error(s){}
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+//  bytes and str class
+///////////////////////////////////////////////////////////////////////////////
 
 struct uchar {
   uchar() = default;
@@ -99,6 +111,84 @@ private:
 typedef sequence<char> bytes;
 typedef sequence<uchar> str;
 
+
+///////////////////////////////////////////////////////////////////////////////
+//  template functions for encode, decode and convert
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+int encode(const str& ss, bytes& bs) {
+  const uchar *sb = ss.data();
+  const uchar *se = ss.limit();
+  std::vector<char> b((se -sb) * 4); // enough buff
+  char *bb = b.data();
+  char *be = b.data() + b.size();
+  T t;
+  while (sb < se) {
+    int p = t(*sb, bb, be - bb);
+    if (p < 0) {
+      break;
+    } else {
+      ++sb;
+      bb += p;
+    }
+  }
+  bs.assign(b.data(), bb);
+  return sb - ss.data();
+}
+
+template<typename T>
+int decode(const bytes& bs, str& ss) {
+  const char *bb = bs.data();
+  const char *be = bs.data() + bs.size();
+  std::vector<uchar> s(bs.size()); // enough buff
+  uchar *sb = s.data();
+  T t;
+  while (bb < be) {
+    int p = t(bb, be - bb, *sb);
+    if (p < 0) {
+      break;
+    } else {
+      bb += p;
+      ++sb;
+    }
+  }
+  ss.assign(s.data(), sb);
+  return be - bb;
+}
+
+template<typename T1, typename T2>
+int convert(const bytes& b1, bytes& b2) {
+  const char *b1b = b1.data();
+  const char *b1e = b1.limit();
+  std::vector<char> b((b1e - b1b) * 4); // enough buff
+  char* bb = b.data();
+  const char* be = b.data() + b.size();
+  T1 t1;
+  T2 t2;
+  while (b1b < b1e) {
+    uchar u;
+    int p = t1(b1b, b1e - b1b, u);
+    if (p < 0) {
+      break;
+    } else {
+      b1b += p;
+      int q = t2(u, bb, be - bb);
+      if (q < 0) {
+        break;
+      } else {
+        bb += q;
+      }
+    }
+  }
+  b2.assign(b.data(), bb);
+  return b1e - b1b;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  encode and decode operators of each encoding
+///////////////////////////////////////////////////////////////////////////////
 
 struct ascii {
   int operator()(const char *bs, int n, uchar& uc) {
@@ -341,76 +431,6 @@ struct utf32be {
     }
   }
 };
-
-
-template<typename T>
-int encode(const str& ss, bytes& bs) {
-  const uchar *sb = ss.data();
-  const uchar *se = ss.limit();
-  std::vector<char> b((se -sb) * 4); // enough buff
-  char *bb = b.data();
-  char *be = b.data() + b.size();
-  T t;
-  while (sb < se) {
-    int p = t(*sb, bb, be - bb);
-    if (p < 0) {
-      break;
-    } else {
-      ++sb;
-      bb += p;
-    }
-  }
-  bs.assign(b.data(), bb);
-  return sb - ss.data();
-}
-
-template<typename T>
-int decode(const bytes& bs, str& ss) {
-  const char *bb = bs.data();
-  const char *be = bs.data() + bs.size();
-  std::vector<uchar> s(bs.size()); // enough buff
-  uchar *sb = s.data();
-  T t;
-  while (bb < be) {
-    int p = t(bb, be - bb, *sb);
-    if (p < 0) {
-      break;
-    } else {
-      bb += p;
-      ++sb;
-    }
-  }
-  ss.assign(s.data(), sb);
-  return be - bb;
-}
-
-template<typename T1, typename T2>
-int convert(const bytes& b1, bytes& b2) {
-  const char *b1b = b1.data();
-  const char *b1e = b1.limit();
-  std::vector<char> b((b1e - b1b) * 4); // enough buff
-  char* bb = b.data();
-  const char* be = b.data() + b.size();
-  T1 t1;
-  T2 t2;
-  while (b1b < b1e) {
-    uchar u;
-    int p = t1(b1b, b1e - b1b, u);
-    if (p < 0) {
-      break;
-    } else {
-      b1b += p;
-      int q = t2(u, bb, be - bb);
-      if (q < 0) {
-        break;
-      } else {
-        bb += q;
-      }
-    }
-  }
-  b2.assign(b.data(), bb);
-  return b1e - b1b;
-}
 
 
 } // namespace minicode
