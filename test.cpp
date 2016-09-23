@@ -42,7 +42,24 @@ int main() {
   bytes utf16le = read_file("utf16le.txt");
   bytes utf32be = read_file("utf32be.txt");
   bytes utf32le = read_file("utf32le.txt");
+
   cout<<"test <utf8, utf8> ..."<<endl;
   test_convert<minicode::utf8, minicode::utf8>(utf8, utf8);
+
+  cout<<"test <utf8, utf16le> ..."<<endl;
+  test_convert<minicode::utf8, minicode::utf16le>(utf8, utf16le);
+
+  cout<<"test <utf8, utf16be> ..."<<endl;
+  test_convert<minicode::utf8, minicode::utf16be>(utf8, utf16be);
+
+  cout<<"test <utf16le, utf16le> ..."<<endl;
+  test_convert<minicode::utf16le, minicode::utf16le>(utf16le, utf16le);
+
+  cout<<"test <utf16le, utf16be> ..."<<endl;
+  test_convert<minicode::utf16le, minicode::utf16be>(utf16le, utf16be);
+
+  cout<<"test <utf16be, utf16be> ..."<<endl;
+  test_convert<minicode::utf16be, minicode::utf16be>(utf16be, utf16be);
+
   return 0;
 }

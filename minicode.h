@@ -20,6 +20,16 @@ inline bool is_surrogate(std::uint32_t u) {
   return 0xd800 <= u && u <= 0xdfff;
 }
 
+inline std::uint32_t surrogate_combine(std::uint32_t high, std::uint32_t low) {
+  return 0x10000 + ((high & 0x3ff) << 10 | (low & 0x3ff));
+}
+
+inline void surrogate_split(std::uint32_t u, std::uint32_t& high, std::uint32_t& low) {
+  u -= 0x10000;
+  low = (u & 0x3ff) | 0xdc00;
+  high = ((u >> 10) & 0x3ff) | 0xd800;
+}
+
 inline bool is_valid_unicode(std::uint32_t u) {
   return u <= 0x10ffff && !is_surrogate(u);
 }
@@ -28,7 +38,6 @@ inline bool is_valid_unicode(std::uint32_t u) {
 inline bool is_utf8_cont(std::uint8_t b) {
   return (b & 0xc0) == 0x80;
 }
-
 
 
 class encode_error: public std::logic_error {
@@ -185,8 +194,94 @@ struct utf8 {
   }
 };
 
-struct utf16le {};
-struct utf16be {};
+struct utf16le {
+  int operator()(const char *bs, int n, uchar& uc) {
+    assert(n >= 2);
+    std::uint32_t& u = uc.value();
+    const std::uint8_t *bss = reinterpret_cast<const uint8_t *>(bs);
+    std::uint32_t x = bss[0] | (bss[1] << 8);
+    if (is_valid_unicode(x) && n >= 2) {
+      u = x;
+      return 2;
+    } else if (is_surrogate_high(x) && x >= 4){
+      std::uint32_t y = bss[2] | (bss[3] << 8);
+      if (is_surrogate_low(y)) {
+        u = surrogate_combine(x, y);
+        return 4;
+      } else {
+        return -1;
+      }
+    } else {
+      return -1;
+    }
+  }
+
+  int operator()(const uchar uc, char* bs, int n) {
+    assert(n >= 2);
+    const std::uint32_t u = uc.value();
+    std::uint8_t *bss = reinterpret_cast<uint8_t *>(bs);
+    if (u < 0x10000 && !is_surrogate(u) && n >= 2) {
+      bss[0] = u & 0xff;
+      bss[1] = (u >> 8) & 0xff;
+      return 2;
+    } else if (0x10000 <= u && u <= 0x10ffff && n >= 4) {
+      std::uint32_t x, y;
+      surrogate_split(u, x, y);
+      bss[0] = x & 0xff;
+      bss[1] = (x >> 8) & 0xff;
+      bss[2] = y & 0xff;
+      bss[3] = (y >> 8) & 0xff;
+      return 4;
+    } else {
+      return -1;
+    }
+  }
+};
+
+struct utf16be {
+  int operator()(const char *bs, int n, uchar& uc) {
+    assert(n >= 2);
+    std::uint32_t& u = uc.value();
+    const std::uint8_t *bss = reinterpret_cast<const uint8_t *>(bs);
+    std::uint32_t x = bss[1] | (bss[0] << 8);
+    if (is_valid_unicode(x) && n >= 2) {
+      u = x;
+      return 2;
+    } else if (is_surrogate_high(x) && x >= 4){
+      std::uint32_t y = bss[3] | (bss[2] << 8);
+      if (is_surrogate_low(y)) {
+        u = surrogate_combine(x, y);
+        return 4;
+      } else {
+        return -1;
+      }
+    } else {
+      return -1;
+    }
+  }
+
+  int operator()(const uchar uc, char* bs, int n) {
+    assert(n >= 2);
+    const std::uint32_t u = uc.value();
+    std::uint8_t *bss = reinterpret_cast<uint8_t *>(bs);
+    if (u < 0x10000 && !is_surrogate(u) && n >= 2) {
+      bss[1] = u & 0xff;
+      bss[0] = (u >> 8) & 0xff;
+      return 2;
+    } else if (0x10000 <= u && u <= 0x10ffff && n >= 4) {
+      std::uint32_t x, y;
+      surrogate_split(u, x, y);
+      bss[1] = x & 0xff;
+      bss[0] = (x >> 8) & 0xff;
+      bss[3] = y & 0xff;
+      bss[2] = (y >> 8) & 0xff;
+      return 4;
+    } else {
+      return -1;
+    }
+  }
+};
+
 struct utf32le {};
 struct utf32be {};
 
