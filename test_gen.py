@@ -16,8 +16,15 @@ def write_file(name, bs):
     with open(name, 'wb') as f:
         f.write(bs)
 
+def write_unicode(name, uu):
+    with open(name, "w") as f:
+        for u in uu:
+            f.write(str(ord(u)))
+            f.write("\n")
+
 def main(script, n, *argv):
     ss = rand_text(int(n))
+    write_unicode("unicode.txt", ss)
     utf8 = ss.encode("utf-8")
     write_file("utf8.txt", utf8)
     utf16be = ss.encode("utf-16be")

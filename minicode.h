@@ -72,6 +72,12 @@ struct uchar {
   uchar& operator=(const uchar&) = default;
   uchar& operator=(uchar&&) = default;
 
+  uchar(char c):_value(static_cast<std::uint8_t>(c)){}
+  explicit uchar(std::uint32_t u):_value(u){}
+
+  bool operator==(const uchar& s) const { return _value == s._value; }
+  bool operator!=(const uchar& s) const { return _value != s._value; }
+
   uint32_t value() const { return _value; }
   uint32_t& value() { return _value; }
 private:
@@ -134,7 +140,7 @@ int encode(const str& ss, bytes& bs) {
     }
   }
   bs.assign(b.data(), bb);
-  return sb - ss.data();
+  return se - sb;
 }
 
 template<typename T>
