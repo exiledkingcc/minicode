@@ -118,7 +118,7 @@ public:
     if (stop > size()) { start = size(); }
     int ret = -1;
     for (int i = start; i != stop; ++i) {
-      if (_data[i] == t) {
+      if (_data[i] == value) {
         ret = i;
         break;
       }
@@ -136,7 +136,7 @@ public:
     if (stop >= size()) { start = size() - 1; }
     int ret = -1;
     for (int i = stop; i != start; --i) {
-      if (_data[i] == t) {
+      if (_data[i] == value) {
         ret = i;
         break;
       }
@@ -150,8 +150,8 @@ public:
   sequence subrange(int start, int stop)  const {
     start = _real_index(start);
     stop = _real_index(stop);
-    if (start <= 0) { start = -1; }
-    if (stop >= size()) { start = size() - 1; }
+    if (start < 0) { start = 0; }
+    if (stop > size()) { start = size(); }
     if (start < stop) {
       return sequence(data() + start, stop - start);
     } else {
