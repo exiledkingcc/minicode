@@ -100,8 +100,8 @@ public:
   bool operator==(const sequence& s) const { return _data == s._data; }
   bool operator!=(const sequence& s) const { return _data != s._data; };
 
-  T& operator[](int idx) { idx = idx < 0 ? idx + (int)size() : idx; return _data[idx]; }
-  const T& operator[](int idx) const { idx = idx < 0 ? idx + (int)size() : idx; return _data[idx]; }
+  T& operator[](int idx) { return _data[_real_index(idx)]; }
+  const T& operator[](int idx) const { return _data[_real_index(idx)]; }
 
   std::size_t size() const { return _data.size(); }
 
@@ -110,6 +110,46 @@ public:
   const T* limit() const { return _data.data() + _data.size(); }
 
   void assign(const T* b, const T* e) { _data.assign(b, e); }
+
+  int find(const T value, int start, int stop) const {
+    start = _real_index(start);
+    stop = _real_index(stop);
+    if (start < 0) { start = 0; }
+    if (stop > size()) { start = size(); }
+    int ret = -1;
+    for (int i = start; i != stop; ++i) {
+      if (_data[i] == t) {
+        ret = i;
+        break;
+      }
+    }
+    return ret;
+  }
+
+  int find(const T value, int start) const { return find(value, start, size()); }
+  int find(const T value) const { return find(value, 0, size()); }
+
+  int rfind(const T value, int start, int stop) const {
+    start = _real_index(start);
+    stop = _real_index(stop);
+    if (start <= 0) { start = -1; }
+    if (stop >= size()) { start = size() - 1; }
+    int ret = -1;
+    for (int i = stop; i != start; --i) {
+      if (_data[i] == t) {
+        ret = i;
+        break;
+      }
+    }
+    return ret;
+  }
+
+  int rfind(const T value, int start) const { return rfind(value, start, size()); }
+  int rfind(const T value) const { return rfind(value, 0, size()); }
+
+private:
+  int _real_index(int idx) const { return idx < 0 ? idx + (int)size() : idx; }
+
 private:
   std::vector<T> _data;
 };
