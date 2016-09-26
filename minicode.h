@@ -147,6 +147,18 @@ public:
   int rfind(const T value, int start) const { return rfind(value, start, size()); }
   int rfind(const T value) const { return rfind(value, 0, size()); }
 
+  sequence subrange(int start, int stop)  const {
+    start = _real_index(start);
+    stop = _real_index(stop);
+    if (start <= 0) { start = -1; }
+    if (stop >= size()) { start = size() - 1; }
+    if (start < stop) {
+      return sequence(data() + start, stop - start);
+    } else {
+      return sequence();
+    }
+  }
+
 private:
   int _real_index(int idx) const { return idx < 0 ? idx + (int)size() : idx; }
 
