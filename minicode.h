@@ -170,6 +170,83 @@ typedef sequence<char> bytes;
 typedef sequence<uchar> str;
 
 
+template<typename Encoding>
+class stream {
+public:
+  stream():_pos(0),_state(0){}
+  stream(const stream&) = default;
+  stream(stream&&) = default;
+  stream& operator=(const stream&) = default;
+  stream& operator=(stream&&) = default;
+
+  stream(const std::vector<char>& data):_data(data),_pos(0),_state(0){}
+  stream(std::vector<char>&& data):_data(data),_pos(0),_state(0){}
+  stream(const char *data, std::size_t n):_data(data, data + n),_pos(0),_state(0){}
+
+  stream& add_bytes(const std::vector<char>& data) {
+    _data.insert(_data.end(), data.begin(), data.end());
+    _data = std::vector<char>(_data.begin() + _pos, _data.end());
+    _pos = 0;
+    _check_eof();
+    return *this;
+  }
+
+  stream& add_bytes(const char *data, std::uint32_t n) {
+    _data.insert(_data.end(), data, data + n);
+    _data = std::vector<char>(_data.begin() + _pos, _data.end());
+    _pos = 0;
+    _check_eof();
+    return *this;
+  }
+
+  void clear() { _data.clear(); _pos = 0; _state = 0; }
+  int available() const { return _data.size() - _pos; }
+
+  bool get(uchar& uc) {
+    Encoding enc;
+    if (!good()) {
+      return false;
+    }
+    int p = enc(_data.data() + _pos, available(), uc.value());
+    if (p < 0) {
+      _state != 2;
+      return false;
+    }
+    _pos += p;
+    _check_eof();
+    return true;
+  }
+
+  bool peek(uchar& uc) const {
+    Encoding enc;
+    if (!good()) {
+      return false;
+    }
+    int p = enc(_data.data() + _pos, available(), uc.value());
+    if (p < 0) {
+      return false;
+    }
+    return true;
+  }
+
+  bool good() const { return _state == 0; }
+  bool eof() const { return (_state & 1) != 0; }
+  bool bad() const { return (_state & 2) != 0; }
+
+private:
+  void _check_eof() {
+    if (available() == 0) {
+      _state |= 1;
+    }
+  }
+
+private:
+  std::vector<char> _data;
+  int _pos;
+  int _state;
+};
+
+
 ///////////////////////////////////////////////////////////////////////////////
 //  template functions for encode, decode and convert
 ///////////////////////////////////////////////////////////////////////////////
