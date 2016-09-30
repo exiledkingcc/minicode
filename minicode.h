@@ -207,9 +207,9 @@ public:
     if (!good()) {
       return false;
     }
-    int p = enc(_data.data() + _pos, available(), uc.value());
+    int p = enc(_data.data() + _pos, available(), uc);
     if (p < 0) {
-      _state != 2;
+      _state |= 2;
       return false;
     }
     _pos += p;
@@ -222,7 +222,7 @@ public:
     if (!good()) {
       return false;
     }
-    int p = enc(_data.data() + _pos, available(), uc.value());
+    int p = enc(_data.data() + _pos, available(), uc);
     if (p < 0) {
       return false;
     }

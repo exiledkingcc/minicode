@@ -70,6 +70,26 @@ void test_encode_decode(const str& ss, const bytes& bb) {
   cout<<endl;
 }
 
+template<typename T>
+void test_stream(const string& filename, const str& ss) {
+  minicode::stream<T> stream;
+  int idx = 0;
+  minicode::uchar uc;
+  std::vector<char> buffer(16);
+  ifstream file(filename, std::ios::binary);
+  do {
+    file.read(buffer.data(), 16);
+    stream.add_bytes(buffer);
+    while (stream.get(uc)) {
+      if (uc != ss[idx]) {
+        cout<<"error: idx:"<<idx<<" uc:"<<uc.value()<<" ss[idx]:"<<ss[idx].value()<<endl;
+      }
+      ++idx;
+    }
+  } while (file.good());
+}
+
+
 int main() {
   str unicode = read_unicode("unicode.txt");
   bytes utf8 = read_file("utf8.txt");
@@ -137,6 +157,9 @@ int main() {
 
   cout<<"test encode, decode <uft32be> ..."<<endl;
   test_encode_decode<minicode::utf32be>(unicode, utf32be);
+
+  cout<<"test stream <uft8> ..."<<endl;
+  test_stream<minicode::utf8>("uft8.txt", unicode);
 
   return 0;
 }
