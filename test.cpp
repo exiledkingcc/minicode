@@ -9,12 +9,14 @@ using minicode::bytes;
 using minicode::str;
 
 bytes read_file(const string& filename) {
-  ifstream file(filename, std::ios::binary | std::ios::ate);
+  ifstream file(filename, std::ios::binary);
+  file.seekg(0, file.end);
   streamsize size = file.tellg();
-  file.seekg(0, std::ios::beg);
+  file.seekg(0, file.beg);
 
   std::vector<char> buffer(size);
   file.read(buffer.data(), size);
+  file.close();
   return bytes(buffer.data(), buffer.size());
 }
 
@@ -74,6 +76,7 @@ template<typename T>
 void test_stream(const string& filename, const str& ss) {
   minicode::stream<T> stream;
   int idx = 0;
+  bool err_flag = false;
   minicode::uchar uc;
   std::vector<char> buffer(16);
   ifstream file(filename, std::ios::binary);
@@ -82,11 +85,15 @@ void test_stream(const string& filename, const str& ss) {
     stream.add_bytes(buffer);
     while (stream.get(uc)) {
       if (uc != ss[idx]) {
+        err_flag = true;
         cout<<"error: idx:"<<idx<<" uc:"<<uc.value()<<" ss[idx]:"<<ss[idx].value()<<endl;
       }
       ++idx;
     }
   } while (file.good());
+  if (!err_flag) {
+    cout<<"true"<<endl<<endl;
+  }
 }
 
 
@@ -159,7 +166,19 @@ int main() {
   test_encode_decode<minicode::utf32be>(unicode, utf32be);
 
   cout<<"test stream <uft8> ..."<<endl;
-  test_stream<minicode::utf8>("uft8.txt", unicode);
+  test_stream<minicode::utf8>("utf8.txt", unicode);
+
+  cout<<"test stream <uft16le> ..."<<endl;
+  test_stream<minicode::utf16le>("utf16le.txt", unicode);
+
+  cout<<"test stream <uft16be> ..."<<endl;
+  test_stream<minicode::utf16be>("utf16be.txt", unicode);
+
+  cout<<"test stream <uft32le> ..."<<endl;
+  test_stream<minicode::utf32le>("utf32le.txt", unicode);
+
+  cout<<"test stream <uft32be> ..."<<endl;
+  test_stream<minicode::utf32be>("utf32be.txt", unicode);
 
   return 0;
 }
