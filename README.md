@@ -1,6 +1,9 @@
 # minicode
 A mini Unicode library, providing python-like API for Unicode.
 
+### license
+GPL-3.0 or Apache-2.0, choose whatever you like.
+
 ### feature
 - one header only
 - python-like API
